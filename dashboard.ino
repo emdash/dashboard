@@ -22,7 +22,6 @@ unsigned int lap;
 float oil_pressure;
 float oil_temp;
 float water_temp;
-
 int wheel_speed;
 
 int page_knob;
@@ -134,8 +133,10 @@ void handleChar(char c)
     switch (c) {
         case 'l':
           last_lap = incoming_i;
-          best_lap = min(best_lap, last_lap);
           lap++;
+	  break;
+        case 'b':
+          best_lap = incoming_i;
           break;
         case 'p':
           predicted_lap = incoming_i;

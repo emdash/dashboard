@@ -48,11 +48,15 @@ tty = initserial()
 def t(): return time.time() - t0
 def lap(): return random.randrange(55 * S, 2 * M)
 
+best_lap = 9 * M + 59 * S + 999
+
 def randomLap():
-    global next_lap, next_lap_time
+    global next_lap, next_lap_time, best_lap
     next_lap = lap()
     next_lap_time = t() * S + next_lap
+    best_lap = min(next_lap, best_lap)
     tty.write("%dl\n" % next_lap)
+    tty.write("%db\n" % best_lap)
 
 randomLap()
 
