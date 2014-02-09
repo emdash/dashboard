@@ -1,45 +1,55 @@
-// character LCD example code
-// www.hacktronics.com
+// Dashboard display firmware
+// (c) 2014 Brandon Lewis
 
 #include <LiquidCrystal.h>
 
+// LCD Configuration
 LiquidCrystal lcd(12, 11, 10, 5, 4, 3, 2);
 int backLight = 13;
-int sensorPin = A0;
+
+// We use a fixed frame-rate. We only re-draw every refreshInterval
+// ms, and even then, only when update is true.
 unsigned int refreshInterval = 100;// miliseconds
 unsigned int curFrame;
+boolean update = true;
 
+// We use potentiometer to choose among one of several "pages"
+int sensorPin = A0;
+int page;
+
+// Time stuff, could be moved to separate header
 #define MINUTES 60000L
 #define SECONDS 1000L
 #define MAX_LAP (9 * MINUTES + 59 * SECONDS + 999)
 typedef unsigned long Time;
 
-Time last_lap = MAX_LAP;
-Time best_lap = MAX_LAP;
-Time predicted_lap = MAX_LAP;
-unsigned int lap;
-
-float oil_pressure;
-float oil_temp;
-float water_temp;
-int wheel_speed;
-
-int page_knob;
-int page;
-boolean update = true;
-
+// All samples are 32-bit words after decoding. We use this union to
+// interpret the data in the format required. We are relying on the
+// fact that AVR micro-controllers use network byte order.
 typedef union {
   unsigned long u;
   long s;
   float f;
 } Value;
 
-#define CMDLEN 7
-#define DATALEN 6
+
+// Data channels
+Time last_lap = MAX_LAP;
+Time best_lap = MAX_LAP;
+Time predicted_lap = MAX_LAP;
+unsigned int lap;
+float oil_pressure;
+float oil_temp;
+float water_temp;
+int wheel_speed;
+
+
+// Used for for the protocol state machine. They could be local,
+// static variables, except for the fact that it's useful to debug
+// them.
 Value incoming;
 char curchar;
 unsigned long nchars;
-unsigned long ncommands;
 
 
 void printTime(unsigned long time)
@@ -194,8 +204,6 @@ void handleChar(char sc)
 
 void setup()
 {
-  Value v;
-
   pinMode(backLight, OUTPUT);
   digitalWrite(backLight, HIGH);
   lcd.begin(16,2);
@@ -215,12 +223,11 @@ void loop()
     curFrame++;
   }
     
-  if (page != newPage)
-    {
-      lcd.clear();
-      page = newPage;
-      update = true;
-    }
+  if (page != newPage) {
+    lcd.clear();
+    page = newPage;
+    update = true;
+  }
 
   if (update) {
     switch (page) {
