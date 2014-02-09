@@ -34,8 +34,8 @@ typedef union {
   float f;
 } Value;
 
-#define CMDLEN 5
-#define DATALEN 4
+#define CMDLEN 7
+#define DATALEN 6
 Value incoming;
 char curchar;
 unsigned long nchars;
@@ -117,36 +117,52 @@ void debug(void)
 
   lcd.setCursor(0, 0);
   lcd.print((unsigned char) curchar, 16);
+
+  lcd.setCursor(3, 0);
+  lcd.print((unsigned char) curchar & 0x7f, 16);
+
+  lcd.setCursor(6, 0);
+  lcd.print(nchars);
   
   lcd.setCursor(8, 0);
   lcd.print(incoming.u, 16);
   
   lcd.setCursor(0, 1);
-  lcd.print(incoming.s);
-  
-  lcd.setCursor(8, 1);
-  lcd.print(nchars);
+  lcd.print(incoming.f);
 }
 
-void handleChar(char c)
+void handleChar(char sc)
 {
+  unsigned char c = (unsigned char) sc;
   curchar = c;
-  Serial.print(String(c, HEX) + " ");
-  Serial.flush();
 
-  nchars = (nchars + 1) % CMDLEN;
-  
-  if (nchars < DATALEN) {
-    incoming.u <<= 8;
-    incoming.u |= (long(c) & long(0xFF));
+  switch (nchars++) {
+  case 0:
+    incoming.u = c & 0x0F;
+    return;
+  case 1:
+  case 2:
+  case 3:
+  case 4:
+    incoming.u <<= 7;
+    incoming.u |= c & 0x7f;
+    return;
+  case 5:
+    break;
+  default:
+    nchars = 0;
     return;
   }
 
-  Serial.print(" (");
-  if (isGraph(c) && !isSpace(c)) {
-    Serial.print(c);
-  }
-  Serial.println(")");
+#if 0
+  Serial.print(" ");
+  Serial.print(String(incoming.u, HEX));
+  Serial.print(" "); 
+  Serial.print(incoming.f);
+  Serial.print(" '");
+  Serial.print(sc);
+  Serial.println("'");
+#endif
   
   switch (c) {
   case 'k':
@@ -174,20 +190,20 @@ void handleChar(char c)
     wheel_speed = incoming.u;
     break;
   }
-
-  incoming.u = 0;
 }
 
 void setup()
 {
+  Value v;
+
   pinMode(backLight, OUTPUT);
   digitalWrite(backLight, HIGH);
   lcd.begin(16,2);
-  lcd.clear();
-  
-  Serial.begin(9600);
 
+  lcd.print("Waiting for data");  
+  Serial.begin(9600);
   while (Serial.read() != 0) {}
+  lcd.clear();
 }
 
 void loop()
@@ -201,8 +217,6 @@ void loop()
     
   if (page != newPage)
     {
-      Serial.print(newPage);
-      Serial.print("\n");
       lcd.clear();
       page = newPage;
       update = true;

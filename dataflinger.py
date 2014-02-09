@@ -49,14 +49,27 @@ tty = initserial()
 def t(): return time.time() - t0
 def lap(): return random.randrange(55 * S, 2 * M)
 
-def sintToBin(i, code):
-    return struct.pack("!Ib", i, ord(code))
-
-def uintToBin(u, code):
-    return struct.pack("!ib", u, ord(code))
-
 def fToBin(f, code):
-    return struct.pack("!fb", f, ord(code))
+    return intToBin(
+        struct.unpack("!I", struct.pack("!f", float(f)))[0],
+        code)
+
+def intToBin(u, code):
+    u = int(u)
+    out = bytearray(7)
+    out[0] = 128 | ((u >> 28) & 0x0F)
+    out[1] = 128 | ((u >> 21) & 0x7F)
+    out[2] = 128 | ((u >> 14) & 0x7F)
+    out[3] = 128 | ((u >> 7)  & 0x7F)
+    out[4] = 128 | (u         & 0x7F)
+    out[5] = ord(code) & 0xFF
+    out[6] = 0
+    print "%x %c" % (u, code);
+    return out
+
+def slowWrite(s):
+    tty.write(s)
+    tty.flush()
 
 best_lap = 9 * M + 59 * S + 999
 nlaps = 0
@@ -66,18 +79,9 @@ def randomLap():
     next_lap = lap()
     next_lap_time = t() * S + next_lap
     best_lap = min(next_lap, best_lap)
-    tty.write(uintToBin(next_lap, "l"))
-    tty.write(uintToBin(best_lap, "b"))
-    tty.write(uintToBin(nlaps, "k"))
     nlaps += 1;
 
 randomLap()
-
-def slowWrite(s):
-    for c in s:
-        tty.write(c)
-        tty.flush()
-        time.sleep(0.01)
 
 while True:
     oil_pressure = 50 + random.random() * 10
@@ -88,11 +92,16 @@ while True:
 
     slowWrite(fToBin(oil_temp, "o"))
     slowWrite(fToBin(water_temp, "w"))
-
-    slowWrite(uintToBin(speed, "s"))
-    slowWrite(uintToBin(predicted, "p"))
+    slowWrite(intToBin(speed, "s"))
+    slowWrite(intToBin(predicted, "p"))
+    slowWrite(intToBin(nlaps, "k"))
+    slowWrite(intToBin(next_lap, "l"))
+    slowWrite(intToBin(best_lap, "b"))
 
     if t() * S > next_lap_time:
         randomLap()
+
     sys.stdout.write(tty.read())
     sys.stdout.flush()
+    tty.flush()
+    time.sleep(0.1)
