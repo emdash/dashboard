@@ -220,27 +220,34 @@ void handleChar(char sc)
 #endif
 } 
 
+
+// Arduino API entry point, part 1.
 void setup()
 {
+  // Initialize the LCD
   pinMode(backLight, OUTPUT);
   digitalWrite(backLight, HIGH);
   lcd.begin(16,2);
 
+  // Wait for the data logger / test app to start sending data.
   lcd.print("Waiting for data");  
   Serial.begin(9600);
   while (Serial.read() != 0) {}
   lcd.clear();
 }
 
+// Arduino API main loop. Used both to process serial data
+// character-by-character, and to update the display every 100ms.
 void loop()
 {
-  int newPage = 4 * analogRead(sensorPin) / 1024;
-    
+  // update display every 100ms.
   if (millis() > (long(curFrame) * long(refreshInterval))) {
     update = true;
     curFrame++;
   }
-    
+
+  // handle the page knob changing.
+  int newPage = 4 * analogRead(sensorPin) / 1024;
   if (page != newPage) {
     lcd.clear();
     page = newPage;
@@ -256,7 +263,8 @@ void loop()
     }
     update = false;
   }
-    
+
+  // handle serial data
   if (Serial.available()) {
     handleChar(Serial.read());
   }
