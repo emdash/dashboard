@@ -28,14 +28,18 @@ int page_knob;
 int page;
 boolean update = true;
 
-unsigned long incoming_i = 0;
-float incoming_f = 0;
-int point = 0;
+typedef union {
+  unsigned long u;
+  long s;
+  float f;
+} Value;
+
+#define CMDLEN 5
+#define DATALEN 4
+Value incoming;
 char curchar;
 unsigned long nchars;
 unsigned long ncommands;
-char garbage[17];
-unsigned char gi;
 
 
 void printTime(unsigned long time)
@@ -112,78 +116,66 @@ void debug(void)
   lcd.clear();
 
   lcd.setCursor(0, 0);
-  lcd.print(millis());
+  lcd.print((unsigned char) curchar, 16);
   
   lcd.setCursor(8, 0);
-  lcd.print(curFrame * refreshInterval);
+  lcd.print(incoming.u, 16);
   
   lcd.setCursor(0, 1);
-  lcd.print(long(curFrame) * refreshInterval);
+  lcd.print(incoming.s);
   
   lcd.setCursor(8, 1);
-  lcd.print(incoming_f);
+  lcd.print(nchars);
 }
 
 void handleChar(char c)
 {
-    Serial.write(c);
-    curchar = c;
-    nchars++;
-   
-    switch (c) {
-        case 'l':
-          last_lap = incoming_i;
-          lap++;
-	  break;
-        case 'b':
-          best_lap = incoming_i;
-          break;
-        case 'p':
-          predicted_lap = incoming_i;
-          break;
-        case 'o':
-          oil_temp = incoming_f;
-          break;
-        case 'w':
-          water_temp = incoming_f;
-          break;
-        case 'r':
-          oil_pressure = incoming_f;
-          break;
-        case 's':
-          wheel_speed = incoming_i;
-          break;
-        case '\n':
-          incoming_i = 0;
-          incoming_f = 0;
-          point = 0;
-          ncommands++;
-          break;
-        case '0':
-        case '1':
-        case '2':
-        case '3':
-        case '4':
-        case '5':
-        case '6':
-        case '7':
-        case '8':
-        case '9':
-          incoming_i = incoming_i * 10 + (c - '0');
-          if (point) {
-            incoming_f += (float(c - '0') / float(point));
-            point *= 10;
-          } else {
-            incoming_f = incoming_f * 10 + (c - '0');
-          }
-          break;
-       case '.':
-         point = 10;
-         break;
-       default:
-         garbage[gi] = c;
-         gi = (gi + 1) % 16;
-    }
+  curchar = c;
+  Serial.print(String(c, HEX) + " ");
+  Serial.flush();
+
+  nchars = (nchars + 1) % CMDLEN;
+  
+  if (nchars < DATALEN) {
+    incoming.u <<= 8;
+    incoming.u |= (long(c) & long(0xFF));
+    return;
+  }
+
+  Serial.print(" (");
+  if (isGraph(c) && !isSpace(c)) {
+    Serial.print(c);
+  }
+  Serial.println(")");
+  
+  switch (c) {
+  case 'k':
+    lap = incoming.u;
+    break;
+  case 'l':
+    last_lap = incoming.u;
+    break;
+  case 'b':
+    best_lap = incoming.u;
+    break;
+  case 'p':
+    predicted_lap = incoming.u;
+    break;
+  case 'o':
+    oil_temp = incoming.f;
+    break;
+  case 'w':
+    water_temp = incoming.f;
+    break;
+  case 'r':
+    oil_pressure = incoming.f;
+    break;
+  case 's':
+    wheel_speed = incoming.u;
+    break;
+  }
+
+  incoming.u = 0;
 }
 
 void setup()
@@ -194,38 +186,40 @@ void setup()
   lcd.clear();
   
   Serial.begin(9600);
+
+  while (Serial.read() != 0) {}
 }
 
 void loop()
 {
-    int newPage = 4 * analogRead(page_knob) / 1024;
+  int newPage = 4 * analogRead(page_knob) / 1024;
     
-    if (millis() > (long(curFrame) * long(refreshInterval))) {
-      update = true;
-      curFrame++;
-    }
+  if (millis() > (long(curFrame) * long(refreshInterval))) {
+    update = true;
+    curFrame++;
+  }
     
-    if (page != newPage)
+  if (page != newPage)
     {
-       Serial.print(newPage);
-       Serial.print("\n");
-       lcd.clear();
-       page = newPage;
-       update = true;
+      Serial.print(newPage);
+      Serial.print("\n");
+      lcd.clear();
+      page = newPage;
+      update = true;
     }
 
-    if (update) {
-      switch (page) {
-          case 0: lapTimes(); break;
-          case 1: engineTemps(); break;
-          case 2: engineMisc(); break;
-          case 3: debug(); break;
-      }
-      update = false;
+  if (update) {
+    switch (page) {
+    case 0: lapTimes(); break;
+    case 1: engineTemps(); break;
+    case 2: engineMisc(); break;
+    case 3: debug(); break;
     }
+    update = false;
+  }
     
-    if (Serial.available()) {
-          handleChar(Serial.read());
-    }
+  if (Serial.available()) {
+    handleChar(Serial.read());
+  }
 }
 

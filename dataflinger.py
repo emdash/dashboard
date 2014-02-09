@@ -3,6 +3,7 @@ import time
 import math
 import termios
 import sys
+import struct
 
 S = 1000
 M = S * 60
@@ -48,20 +49,35 @@ tty = initserial()
 def t(): return time.time() - t0
 def lap(): return random.randrange(55 * S, 2 * M)
 
+def sintToBin(i, code):
+    return struct.pack("!Ib", i, ord(code))
+
+def uintToBin(u, code):
+    return struct.pack("!ib", u, ord(code))
+
+def fToBin(f, code):
+    return struct.pack("!fb", f, ord(code))
+
 best_lap = 9 * M + 59 * S + 999
+nlaps = 0
 
 def randomLap():
-    global next_lap, next_lap_time, best_lap
+    global next_lap, next_lap_time, best_lap, nlaps
     next_lap = lap()
     next_lap_time = t() * S + next_lap
     best_lap = min(next_lap, best_lap)
-    tty.write("%dl\n" % next_lap)
-    tty.write("%db\n" % best_lap)
+    tty.write(uintToBin(next_lap, "l"))
+    tty.write(uintToBin(best_lap, "b"))
+    tty.write(uintToBin(nlaps, "k"))
+    nlaps += 1;
 
 randomLap()
 
 def slowWrite(s):
-    tty.write(s)
+    for c in s:
+        tty.write(c)
+        tty.flush()
+        time.sleep(0.01)
 
 while True:
     oil_pressure = 50 + random.random() * 10
@@ -70,15 +86,13 @@ while True:
     speed = 100 + 50 * math.sin(math.pi * t() / 15)
     predicted = next_lap + 5 * S *  math.sin(math.pi * t() / 5)
 
-    slowWrite("%fo\n" % oil_temp)
-    slowWrite("%fw\n" % water_temp)
+    slowWrite(fToBin(oil_temp, "o"))
+    slowWrite(fToBin(water_temp, "w"))
 
-    slowWrite("%ds\n" % speed)
-    slowWrite("%dp\n" % predicted)
+    slowWrite(uintToBin(speed, "s"))
+    slowWrite(uintToBin(predicted, "p"))
 
     if t() * S > next_lap_time:
         randomLap()
-
     sys.stdout.write(tty.read())
-    time.sleep(.05)
     sys.stdout.flush()
