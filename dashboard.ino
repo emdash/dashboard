@@ -190,6 +190,12 @@ void handleChar(char sc)
   unsigned char c = (unsigned char) sc;
   curchar = c;
 
+  // reset whenver we get a null byte
+  if (c == 0) {
+    nchars = 0;
+    return;
+  }
+
   switch (nchars++) {
   case 0:
     incoming.u = c & 0x0F;
