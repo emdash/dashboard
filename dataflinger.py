@@ -11,9 +11,6 @@ t0 = time.time();
 
 def initserial():
     tty = file("/dev/ttyACM0", "r+", 0)
-
-    time.sleep(2.0)
-
     attrs = termios.tcgetattr(tty)
     attrs[0] &= ~(
         termios.IGNBRK |
