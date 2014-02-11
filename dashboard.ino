@@ -234,6 +234,7 @@ void setup()
   pinMode(backLight, OUTPUT);
   digitalWrite(backLight, HIGH);
   lcd.begin(16,2);
+  lcd.clear();
 
   // Wait for the data logger / test app to start sending data.
   lcd.print("Waiting for data");  
