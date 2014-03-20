@@ -6,6 +6,40 @@
 // LCD Configuration
 LiquidCrystal lcd(8, 6, 7, 9, 10, 11, 12);
 
+/*
+ * This macro maps shift light LEDS to their respective RPM threshold
+ * and bit position I crossed some of the wires. Hence the second
+ * column. If you want to tune shift thresholds, adjust the values in
+ * the third column of this table.
+ */
+#define LEDS(PIN) \
+  PIN(GN1, 2,  3500) \
+  PIN(GN2, 4,  4000) \
+  PIN(YL1, 8,  4500) \
+  PIN(YL2, 64, 5000) \
+  PIN(RD1, 16, 5500) \
+  PIN(RD2, 32, 6000)
+
+/*
+ * RPM threshold above which all the shift lights blink. Change this
+ * if you want the shift lights to blink at a different RPM.
+ */
+#define ALARM_THRESH 6100
+
+/* This macro is passed into the above macro. The total expansion sets
+ * enables and disables LEDS based on RPM by ORing in the
+ * corresponding bit. Don't change this.
+ */
+#define SET(name, pinbit, thresh) if (rpm >= thresh) { leds |= pinbit; }
+ 
+/*
+ * SPI Pins for the shift light shift register. Don't change this unless you also change these pins.
+ */
+#define DATA 3
+#define SCLK 4
+#define LATCH 5
+
+
 // We use a fixed frame-rate. We only re-draw every refreshInterval
 // ms, and even then, only when update is true.
 unsigned int refreshInterval = 100;// miliseconds
@@ -75,6 +109,14 @@ void printTime(unsigned long time)
 }
 
 
+// Sends LED bits to the shift register using SPI
+void updateLeds(unsigned char b) {
+  digitalWrite(LATCH, LOW);
+  shiftOut(DATA, SCLK, MSBFIRST, b);
+  digitalWrite(LATCH, HIGH);
+}
+
+
 // Implements the lap time "page" of the display.
 void lapTimes (void)
 {
@@ -105,10 +147,7 @@ void lapTimes (void)
   lcd.setCursor(12, 0);
   lcd.print("   ");
   lcd.setCursor(12, 0);
-#if 0
   lcd.print(wheel_speed);
-#endif
-  lcd.print(rpm);
 }
 
 // Impements the engine temperature page of the display
@@ -239,6 +278,11 @@ void setup()
   lcd.begin(16,2);
   lcd.clear();
 
+  // Initialize LED shift register SPI pins
+  pinMode(DATA, OUTPUT);
+  pinMode(SCLK, OUTPUT);
+  pinMode(LATCH, OUTPUT);
+
   // Wait for the data logger / test app to start sending data.
   lcd.print("Waiting for data");  
   Serial.begin(9600);
@@ -250,6 +294,8 @@ void setup()
 // character-by-character, and to update the display every 100ms.
 void loop()
 {
+  unsigned char leds = 0;
+
   // update display every 100ms.
   if (millis() > (long(curFrame) * long(refreshInterval))) {
     update = true;
@@ -265,6 +311,14 @@ void loop()
   }
 
   if (update) {
+    if (rpm < ALARM_THRESH) {
+      LEDS(SET)
+    } else if (curFrame & 1) {
+      leds = 0xFF;
+    }
+    
+    updateLeds(leds);
+
     switch (page) {
     case 0: lapTimes(); break;
     case 1: engineTemps(); break;
