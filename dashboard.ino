@@ -41,6 +41,7 @@ float oil_pressure;
 float oil_temp;
 float water_temp;
 int wheel_speed;
+int rpm;
 
 
 // Used for for the protocol state machine. They could be local,
@@ -161,6 +162,9 @@ void updateValues(unsigned char c)
     break;
   case 'l':
     last_lap = incoming.u;
+    break;
+  case 'm':
+    rpm = incoming.u;
     break;
   case 'o':
     oil_temp = incoming.f;

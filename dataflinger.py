@@ -9,6 +9,12 @@ S = 1000
 M = S * 60
 t0 = time.time(); 
 
+LOWER_RPM = 3000
+UPPER_RPM = 6200
+RANGE_RPM = UPPER_RPM - LOWER_RPM
+X = RANGE_RPM / 2
+B = UPPER_RPM - X
+
 def initserial():
     tty = file(sys.argv[1], "r+", 0)
     attrs = termios.tcgetattr(tty)
@@ -85,6 +91,7 @@ while True:
     water_temp = min(225, 100 + t());
     oil_temp = min(250, 100 + t() * 1.1);
     speed = 100 + 50 * math.sin(math.pi * t() / 15)
+    rpm = X * math.sin(t() / 5) + B
     predicted = next_lap + 5 * S *  math.sin(math.pi * t() / 5)
 
     slowWrite(fToBin(oil_temp, "o"))
@@ -94,6 +101,7 @@ while True:
     slowWrite(intToBin(nlaps, "k"))
     slowWrite(intToBin(next_lap, "l"))
     slowWrite(intToBin(best_lap, "b"))
+    slowWrite(intToBin(rpm, "m"))
 
     if t() * S > next_lap_time:
         randomLap()
