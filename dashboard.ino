@@ -153,29 +153,29 @@ void debug(void)
 void updateValues(unsigned char c)
 { 
   switch (c) {
+  case 'b':
+    best_lap = incoming.u;
+    break;
   case 'k':
     lap = incoming.u;
     break;
   case 'l':
     last_lap = incoming.u;
     break;
-  case 'b':
-    best_lap = incoming.u;
-    break;
-  case 'p':
-    predicted_lap = incoming.u;
-    break;
   case 'o':
     oil_temp = incoming.f;
     break;
-  case 'w':
-    water_temp = incoming.f;
+  case 'p':
+    predicted_lap = incoming.u;
     break;
   case 'r':
     oil_pressure = incoming.f;
     break;
   case 's':
     wheel_speed = incoming.u;
+    break;
+  case 'w':
+    water_temp = incoming.f;
     break;
   }
 }
