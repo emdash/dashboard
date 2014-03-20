@@ -4,8 +4,7 @@
 #include <LiquidCrystal.h>
 
 // LCD Configuration
-LiquidCrystal lcd(12, 11, 10, 5, 4, 3, 2);
-int backLight = 13;
+LiquidCrystal lcd(8, 6, 7, 9, 10, 11, 12);
 
 // We use a fixed frame-rate. We only re-draw every refreshInterval
 // ms, and even then, only when update is true.
@@ -230,9 +229,6 @@ void handleChar(char sc)
 // Arduino API entry point, part 1.
 void setup()
 {
-  // Initialize the LCD
-  pinMode(backLight, OUTPUT);
-  digitalWrite(backLight, HIGH);
   lcd.begin(16,2);
   lcd.clear();
 
