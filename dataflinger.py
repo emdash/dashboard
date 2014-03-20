@@ -10,7 +10,7 @@ M = S * 60
 t0 = time.time(); 
 
 def initserial():
-    tty = file("/dev/ttyACM0", "r+", 0)
+    tty = file(sys.argv[1], "r+", 0)
     attrs = termios.tcgetattr(tty)
     attrs[0] &= ~(
         termios.IGNBRK |
