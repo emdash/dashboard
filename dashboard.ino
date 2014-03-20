@@ -105,7 +105,10 @@ void lapTimes (void)
   lcd.setCursor(12, 0);
   lcd.print("   ");
   lcd.setCursor(12, 0);
+#if 0
   lcd.print(wheel_speed);
+#endif
+  lcd.print(rpm);
 }
 
 // Impements the engine temperature page of the display
