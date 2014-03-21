@@ -86,12 +86,19 @@ def randomLap():
 
 randomLap()
 
+def rpmCurve(x):
+    if -1 <= x <= 0:
+        return 2 * x + 1
+    elif 0 <= x <= 0.5:
+        return 1
+    elif 0.5 < x <= 1:
+        return -15 * x + 8.5
+
 while True:
     oil_pressure = 50 + random.random() * 10
     water_temp = min(225, 100 + t());
     oil_temp = min(250, 100 + t() * 1.1);
     speed = 100 + 50 * math.sin(math.pi * t() / 15)
-    rpm = X * math.sin(t() / 5) + B
     predicted = next_lap + 5 * S *  math.sin(math.pi * t() / 5)
 
     slowWrite(fToBin(oil_temp, "o"))
@@ -101,7 +108,7 @@ while True:
     slowWrite(intToBin(nlaps, "k"))
     slowWrite(intToBin(next_lap, "l"))
     slowWrite(intToBin(best_lap, "b"))
-    slowWrite(intToBin(rpm, "m"))
+    slowWrite(intToBin(X * rpmCurve((t() / 2) % 2 - 1) + B, "m"))
 
     if t() * S > next_lap_time:
         randomLap()
@@ -109,4 +116,4 @@ while True:
     sys.stdout.write(tty.read())
     sys.stdout.flush()
     tty.flush()
-    time.sleep(0.1)
+    time.sleep(0.05)
