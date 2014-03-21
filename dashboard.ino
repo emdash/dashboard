@@ -2,6 +2,7 @@
 // (c) 2014 Brandon Lewis
 
 #include <LiquidCrystal.h>
+#include "rcpparse.h"
 
 // LCD Configuration
 LiquidCrystal lcd(8, 6, 7, 9, 10, 11, 12);
@@ -56,17 +57,22 @@ int page;
 #define MAX_LAP (9 * MINUTES + 59 * SECONDS + 999)
 typedef unsigned long Time;
 
-// All samples are 32-bit words after decoding. We use this union to
-// interpret the data in the format required. We are relying on the
-// fact that AVR micro-controllers use network byte order.
-typedef union {
-  unsigned long u;
-  long s;
-  float f;
-} Value;
+#define CONFIG						\
+  (ANALOG_0_ENABLED					\
+   |ANALOG_1_ENABLED					\
+   |ANALOG_2_ENABLED					\
+   |FREQ_0_ENABLED					\
+   |ACCEL_0_ENABLED					\
+   |ACCEL_1_ENABLED					\
+   |ACCEL_2_ENABLED 					\
+   |ACCEL_3_ENABLED					\
+   |GPS_LAT_ENABLED					\
+   |GPS_LON_ENABLED					\
+   |GPS_SPEED_ENABLED					\
+   |GPS_TIME_ENABLED					\
+   |GPS_SATELITE_ENABLED)
 
 
-// Data channels
 Time last_lap = MAX_LAP;
 Time best_lap = MAX_LAP;
 Time predicted_lap = MAX_LAP;
@@ -77,13 +83,44 @@ float water_temp;
 int wheel_speed;
 int rpm;
 
+class DashboardParser : public RCPParser {
 
-// Used for for the protocol state machine. They could be local,
-// static variables, except for the fact that it's useful to debug
-// them.
-Value incoming;
-char curchar;
-unsigned long nchars;
+public:
+
+  DashboardParser(ChannelConfig c) : RCPParser(c) {};
+
+private:
+
+  void processSample (float s, ChannelId id) {
+    switch (id) {
+    case ANALOG_0:
+      oil_pressure = s;
+      break;
+    case ANALOG_1:
+      oil_temp = s;
+      break;
+    case ANALOG_2:
+      water_temp = s;
+      break;
+    case FREQ_0:
+      rpm = s;
+      break;
+    case GPS_SPEED:
+      wheel_speed = s;
+      break;
+    case TRACK_LAP_TIME:
+      last_lap = s;
+      best_lap = (s < best_lap) ? s : best_lap;
+      break;
+    case TRACK_PREDICTED_TIME:
+      predicted_lap = s;
+      break;
+    case TRACK_LAP_COUNT:
+      lap = s;
+      break;
+    }
+  }
+} p(CONFIG);
 
 
 // Prints an unsigned integer to the LCD in M:SS.mS format. For some
@@ -169,109 +206,6 @@ void engineMisc(void)
   lcd.print(oil_pressure);
 }
 
-// Random stuff for debugging purposes. Mostly not useful unless you
-// slow down the data stream.
-void debug(void)
-{
-  lcd.clear();
-
-  lcd.setCursor(0, 0);
-  lcd.print((unsigned char) curchar, 16);
-
-  lcd.setCursor(3, 0);
-  lcd.print((unsigned char) curchar & 0x7f, 16);
-
-  lcd.setCursor(6, 0);
-  lcd.print(nchars);
-  
-  lcd.setCursor(8, 0);
-  lcd.print(incoming.u, 16);
-  
-  lcd.setCursor(0, 1);
-  lcd.print(incoming.f);
-}
-
-// Copies the current input to the appropriate sensor variable. Think
-// of it as a mapping between channel ID, variable, and data type.
-void updateValues(unsigned char c)
-{ 
-  switch (c) {
-  case 'b':
-    best_lap = incoming.u;
-    break;
-  case 'k':
-    lap = incoming.u;
-    break;
-  case 'l':
-    last_lap = incoming.u;
-    break;
-  case 'm':
-    rpm = incoming.u;
-    break;
-  case 'o':
-    oil_temp = incoming.f;
-    break;
-  case 'p':
-    predicted_lap = incoming.u;
-    break;
-  case 'r':
-    oil_pressure = incoming.f;
-    break;
-  case 's':
-    wheel_speed = incoming.u;
-    break;
-  case 'w':
-    water_temp = incoming.f;
-    break;
-  }
-}
-
-// Protocol state machine. Called once for each byte received over
-// serial. Data is encoded such that null bytes never occur within
-// the message body, leaving allowing them to serve as delimiters.
-// Think of it as "base 128" as opposed to "base 64".
-void handleChar(char sc)
-{
-  unsigned char c = (unsigned char) sc;
-  curchar = c;
-
-  // reset whenver we get a null byte
-  if (c == 0) {
-    nchars = 0;
-    return;
-  }
-
-  switch (nchars++) {
-  case 0:
-    incoming.u = c & 0x0F;
-    return;
-  case 1:
-  case 2:
-  case 3:
-  case 4:
-    incoming.u <<= 7;
-    incoming.u |= c & 0x7f;
-    return;
-  case 5:
-    updateValues(c);
-    return;
-  default:
-    nchars = 0;
-    return;
-  }
-
-#if 0
-  Serial.print(" ");
-  Serial.print(String(incoming.u, HEX));
-  Serial.print(" "); 
-  Serial.print(incoming.f);
-  Serial.print(" '");
-  Serial.print(sc);
-  Serial.println("'");
-#endif
-} 
-
-
 // Arduino API entry point, part 1.
 void setup()
 {
@@ -285,8 +219,8 @@ void setup()
 
   // Wait for the data logger / test app to start sending data.
   lcd.print("Waiting for data");  
-  Serial.begin(9600);
-  while (Serial.read() != 0) {}
+  Serial.begin(115200);
+  while (!Serial.available()) {}
   lcd.clear();
 }
 
@@ -323,14 +257,13 @@ void loop()
     case 0: lapTimes(); break;
     case 1: engineTemps(); break;
     case 2: engineMisc(); break;
-    case 3: debug(); break;
     }
     update = false;
   }
 
   // handle serial data
-  if (Serial.available()) {
-    handleChar(Serial.read());
+  while (Serial.available()) {
+    p.handleChar(Serial.read());
   }
 }
 
