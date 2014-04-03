@@ -5,7 +5,7 @@
 #include "rcpparse.h"
 
 // LCD Configuration
-LiquidCrystal lcd(8, 6, 7, 9, 10, 11, 12);
+LiquidCrystal lcd(8, 7, 9, 10, 11, 12);
 
 /*
  * This macro maps shift light LEDS to their respective RPM threshold
@@ -209,6 +209,10 @@ void engineMisc(void)
 // Arduino API entry point, part 1.
 void setup()
 {
+  // Initialize LCD. We're using 6-wire, but need to explicitly raise
+  // RW-line for now.
+  pinMode(6, OUTPUT);
+  digitalWrite(6, LOW);
   lcd.begin(16,2);
   lcd.clear();
 
