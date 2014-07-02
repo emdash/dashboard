@@ -51,29 +51,6 @@ tty = initserial()
 
 def t(): return time.time() - t0
 def lap(): return random.randrange(55 * S, 2 * M)
-
-def fToBin(f, code):
-    return intToBin(
-        struct.unpack("!I", struct.pack("!f", float(f)))[0],
-        code)
-
-def intToBin(u, code):
-    u = int(u)
-    out = bytearray(7)
-    out[0] = 128 | ((u >> 28) & 0x0F)
-    out[1] = 128 | ((u >> 21) & 0x7F)
-    out[2] = 128 | ((u >> 14) & 0x7F)
-    out[3] = 128 | ((u >> 7)  & 0x7F)
-    out[4] = 128 | (u         & 0x7F)
-    out[5] = ord(code) & 0xFF
-    out[6] = 0
-    print "%x %c" % (u, code);
-    return out
-
-def slowWrite(s):
-    tty.write(s)
-    tty.flush()
-
 best_lap = 9 * M + 59 * S + 999
 nlaps = 0
 
@@ -100,16 +77,13 @@ while True:
     oil_temp = min(250, 100 + t() * 1.1);
     speed = 100 + 50 * math.sin(math.pi * t() / 15)
     predicted = next_lap + 5 * S *  math.sin(math.pi * t() / 5)
+    rpm = 3000 + (t() % 1.0) * 4000
 
-    slowWrite(fToBin(oil_temp, "o"))
-    slowWrite(fToBin(water_temp, "w"))
-    slowWrite(intToBin(speed, "s"))
-    slowWrite(intToBin(predicted, "p"))
-    slowWrite(intToBin(nlaps, "k"))
-    slowWrite(intToBin(next_lap, "l"))
-    slowWrite(intToBin(best_lap, "b"))
-    slowWrite(intToBin(X * rpmCurve((t() / 2) % 2 - 1) + B, "m"))
-
+    tty.write('{"s":{"t":%(time)d,"d":['
+              '0,0,%(rpm)d,0,0,0,0,0,254]}}\r\n'
+              % {"time": t() * 1000,
+                 "rpm": rpm})
+    
     if t() * S > next_lap_time:
         randomLap()
 
