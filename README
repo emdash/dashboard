@@ -3,3 +3,25 @@ Dashboard Firmware
  Firmware for a custom dashboard implemented with an
  arduino-compatible microcontroller. Currently, it must be built and
  uploaded via the arduino ide. It relies on LibRCP as a submodule.
+
+Usage
+
+ Clone it directly into your sketchbook folder:
+
+  $ cd ~/sketchbook
+  $ git clone <repo>
+  $ cd dashboard
+  $ git submodule init
+  $ git submodule update
+
+ Launch the arduino ide, and choose "dashboard" from the
+ sketchbook. Plug in the arduino, and upload the sketch.
+
+Configuration
+
+ Changes to the RCP channel configuration currently require updating
+ the config in the source code and re-uploading the firmware.. See the
+ declaration of CONFIG in dashboard.ino. Chanel constants are defined
+ in "rcpparse.h".
+
+
