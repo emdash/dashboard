@@ -1,0 +1,3 @@
+[submodule "librcp"]
+	path = librcp
+	url = https://github.com/emdash/LibRCP.git
