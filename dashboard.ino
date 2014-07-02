@@ -5,21 +5,25 @@
 #include "rcpparse.h"
 
 // LCD Configuration
-LiquidCrystal lcd(8, 7, 9, 10, 11, 12);
+LiquidCrystal lcd(12,  // rs
+		  11,  // enable
+		  5,   // d0
+		  4,   // d1
+		  3,   // d2
+		  2);  // d3
 
 /*
  * This macro maps shift light LEDS to their respective RPM threshold
- * and bit position I crossed some of the wires. Hence the second
- * column. If you want to tune shift thresholds, adjust the values in
+ * and pin. If you want to tune shift thresholds, adjust the values in
  * the third column of this table.
  */
-#define LEDS(PIN) \
-  PIN(GN1, 2,  3500) \
-  PIN(GN2, 4,  4000) \
-  PIN(YL1, 8,  4500) \
-  PIN(YL2, 64, 5000) \
-  PIN(RD1, 16, 5500) \
-  PIN(RD2, 32, 6000)
+#define LEDS(PIN)      \
+  PIN(GN1, 13, 3500)   \
+  PIN(GN2, 10, 4000)   \
+  PIN(YL1, 9,  4500)   \
+  PIN(YL2, 8,  5000)   \
+  PIN(RD1, 7,  5500)   \
+  PIN(RD2, 6,  6000)
 
 /*
  * RPM threshold above which all the shift lights blink. Change this
