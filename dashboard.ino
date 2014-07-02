@@ -35,15 +35,10 @@ LiquidCrystal lcd(12,  // rs
  * enables and disables LEDS based on RPM by ORing in the
  * corresponding bit. Don't change this.
  */
-#define SET(name, pinbit, thresh) if (rpm >= thresh) { leds |= pinbit; }
- 
-/*
- * SPI Pins for the shift light shift register. Don't change this unless you also change these pins.
- */
-#define DATA 3
-#define SCLK 4
-#define LATCH 5
-
+#define FROM_RPM(name, pin, thresh)  digitalWrite(pin, (rpm >= thresh) ? HIGH : LOW);
+#define LEDS_INIT(name, pin, thresh) pinMode(pin, OUTPUT);
+#define LEDS_HIGH(name, pin, thresh) digitalWrite(pin, HIGH);
+#define LEDS_LOW(name, pin, thresh)  digitalWrite(pin, LOW);
 
 // We use a fixed frame-rate. We only re-draw every refreshInterval
 // ms, and even then, only when update is true.
@@ -150,14 +145,6 @@ void printTime(unsigned long time)
 }
 
 
-// Sends LED bits to the shift register using SPI
-void updateLeds(unsigned char b) {
-  digitalWrite(LATCH, LOW);
-  shiftOut(DATA, SCLK, MSBFIRST, b);
-  digitalWrite(LATCH, HIGH);
-}
-
-
 // Implements the lap time "page" of the display.
 void lapTimes (void)
 {
@@ -213,17 +200,13 @@ void engineMisc(void)
 // Arduino API entry point, part 1.
 void setup()
 {
-  // Initialize LCD. We're using 6-wire, but need to explicitly raise
-  // RW-line for now.
-  pinMode(6, OUTPUT);
+  // Initialize LCD. 
   digitalWrite(6, LOW);
   lcd.begin(16,2);
   lcd.clear();
 
-  // Initialize LED shift register SPI pins
-  pinMode(DATA, OUTPUT);
-  pinMode(SCLK, OUTPUT);
-  pinMode(LATCH, OUTPUT);
+  // Initialize LED pins
+  LEDS(LEDS_INIT);
 
   // Wait for the data logger / test app to start sending data.
   lcd.print("Waiting for data");  
@@ -254,12 +237,14 @@ void loop()
 
   if (update) {
     if (rpm < ALARM_THRESH) {
-      LEDS(SET)
-    } else if (curFrame & 1) {
-      leds = 0xFF;
+      LEDS(FROM_RPM);
+    } else {
+      if (curFrame & 1) {
+	LEDS(LEDS_HIGH);
+      } else {
+	LEDS(LEDS_LOW);
+      }
     }
-    
-    updateLeds(leds);
 
     switch (page) {
     case 0: lapTimes(); break;
