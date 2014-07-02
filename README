@@ -1,0 +1,5 @@
+Dashboard Firmware
+
+ Firmware for a custom dashboard implemented with an
+ arduino-compatible microcontroller. Currently, it must be built and
+ uploaded via the arduino ide. It relies on LibRCP as a submodule.
