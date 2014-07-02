@@ -39,8 +39,8 @@ def initserial():
         termios.ICANON |
         termios.ISIG   |
         termios.IEXTEN)
-    attrs[4] = termios.B9600
-    attrs[5] = termios.B9600
+    attrs[4] = termios.B115200
+    attrs[5] = termios.B115200
     attrs[6][termios.VMIN] = 0
     attrs[6][termios.VTIME] = 0
     termios.tcsetattr(tty, termios.TCSANOW, attrs)
